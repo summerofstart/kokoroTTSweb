@@ -5,6 +5,7 @@ import type {
   KokoroWorkerRequest,
   KokoroWorkerResponse
 } from "./kokoro-types";
+import { voices } from "./kokoro-types";
 export type {
   KokoroApiConfig,
   KokoroDType,
