@@ -74,7 +74,10 @@ export async function synthesizeKokoro(options: KokoroGenerateOptions): Promise<
     speed: options.speed ?? 1
   });
   const wav = audio.toWav();
-  const buffer = wav.buffer.slice(wav.byteOffset, wav.byteOffset + wav.byteLength);
+  const buffer =
+    wav instanceof ArrayBuffer
+      ? wav.slice(0)
+      : wav.buffer.slice(wav.byteOffset, wav.byteOffset + wav.byteLength);
 
   return {
     wav: buffer,
