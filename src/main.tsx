@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Mic, Sparkles } from "lucide-react";
 import { KokoroApp } from "./KokoroApp";
 import "./styles.css";
+import "./f5/index.css";
 
 const F5App = lazy(() => import("./f5/App.jsx"));
 
