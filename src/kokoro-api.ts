@@ -1,0 +1,77 @@
+import type {
+  KokoroApiConfig,
+  KokoroGenerateOptions,
+  KokoroSynthesisResult,
+  KokoroWorkerRequest,
+  KokoroWorkerResponse
+} from "./kokoro-types";
+export type {
+  KokoroApiConfig,
+  KokoroDType,
+  KokoroDevice,
+  KokoroGenerateOptions,
+  KokoroSynthesisResult,
+  KokoroVoice
+} from "./kokoro-types";
+export { voices } from "./kokoro-types";
+
+type Pending = {
+  resolve: (value: KokoroSynthesisResult | KokoroSynthesisResult["runtime"]) => void;
+  reject: (reason: Error) => void;
+};
+
+export class KokoroBrowserAPI {
+  private worker: Worker;
+  private nextId = 1;
+  private pending = new Map<number, Pending>();
+
+  constructor() {
+    this.worker = new Worker(new URL("./kokoro.worker.ts", import.meta.url), { type: "module" });
+    this.worker.onmessage = (event: MessageEvent<KokoroWorkerResponse>) => {
+      const response = event.data;
+      const pending = this.pending.get(response.id);
+      if (!pending) return;
+      this.pending.delete(response.id);
+
+      if (response.type === "error") {
+        pending.reject(new Error(response.message));
+      } else if (response.type === "ready") {
+        pending.resolve(response.runtime);
+      } else {
+        pending.resolve(response.result);
+      }
+    };
+
+    void this.preload({ device: "auto", dtype: "q4" }).catch(() => {
+      // UI callers surface preload failures explicitly; the eager warmup should stay quiet.
+    });
+  }
+
+  preload(config: KokoroApiConfig = {}) {
+    return this.call({ type: "preload", config }) as Promise<KokoroSynthesisResult["runtime"]>;
+  }
+
+  synthesize(options: KokoroGenerateOptions) {
+    if (!options.text.trim()) {
+      return Promise.reject(new Error("text is required"));
+    }
+    return this.call({ type: "generate", options }) as Promise<KokoroSynthesisResult>;
+  }
+
+  dispose() {
+    this.worker.terminate();
+    this.pending.clear();
+  }
+
+  private call(request: Omit<KokoroWorkerRequest, "id">) {
+    const id = this.nextId++;
+    const message = { id, ...request } as KokoroWorkerRequest;
+
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      this.worker.postMessage(message);
+    });
+  }
+}
+
+export const kokoroApi = new KokoroBrowserAPI();
