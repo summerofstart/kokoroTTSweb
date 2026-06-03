@@ -1,4 +1,4 @@
-import { preloadKokoro, synthesizeKokoro } from "./kokoro-engine";
+import { importKokoroVoice, preloadKokoro, synthesizeKokoro } from "./kokoro-engine";
 import type { KokoroWorkerRequest, KokoroWorkerResponse } from "./kokoro-types";
 
 self.onmessage = async (event: MessageEvent<KokoroWorkerRequest>) => {
@@ -14,6 +14,12 @@ self.onmessage = async (event: MessageEvent<KokoroWorkerRequest>) => {
         type: "ready",
         runtime: { device: model.device, dtype: model.dtype }
       } satisfies KokoroWorkerResponse);
+      return;
+    }
+
+    if (request.type === "importVoice") {
+      const voiceId = await importKokoroVoice(request.voiceId, request.data);
+      postMessage({ id: request.id, type: "voiceImported", voiceId } satisfies KokoroWorkerResponse);
       return;
     }
 

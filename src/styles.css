@@ -169,7 +169,8 @@ input[type="range"] {
 }
 
 button,
-.actions a {
+.actions a,
+.fileButton {
   min-height: 48px;
   display: inline-flex;
   align-items: center;
@@ -193,6 +194,19 @@ button:disabled,
 
 .actions a {
   background: #b7382d;
+}
+
+.fileButton {
+  background: #26332e;
+  position: relative;
+  overflow: hidden;
+}
+
+.fileButton input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 audio {

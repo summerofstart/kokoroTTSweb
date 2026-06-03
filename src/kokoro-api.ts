@@ -20,6 +20,7 @@ declare global {
   interface Window {
     KokoroTTSWeb?: {
       preload: KokoroBrowserAPI["preload"];
+      importVoice: KokoroBrowserAPI["importVoice"];
       synthesize: KokoroBrowserAPI["synthesize"];
       voices: typeof import("./kokoro-types").voices;
     };
@@ -48,6 +49,8 @@ export class KokoroBrowserAPI {
         pending.reject(new Error(response.message));
       } else if (response.type === "ready") {
         pending.resolve(response.runtime);
+      } else if (response.type === "voiceImported") {
+        pending.resolve(response.voiceId as never);
       } else {
         pending.resolve(response.result);
       }
@@ -69,18 +72,22 @@ export class KokoroBrowserAPI {
     return this.call({ type: "generate", options }) as Promise<KokoroSynthesisResult>;
   }
 
+  importVoice(voiceId: string, data: ArrayBuffer) {
+    return this.call({ type: "importVoice", voiceId, data }, [data]) as Promise<string>;
+  }
+
   dispose() {
     this.worker.terminate();
     this.pending.clear();
   }
 
-  private call(request: Omit<KokoroWorkerRequest, "id">) {
+  private call(request: Omit<KokoroWorkerRequest, "id">, transfer: Transferable[] = []) {
     const id = this.nextId++;
     const message = { id, ...request } as KokoroWorkerRequest;
 
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      this.worker.postMessage(message);
+      this.worker.postMessage(message, transfer);
     });
   }
 }
@@ -89,6 +96,7 @@ export const kokoroApi = new KokoroBrowserAPI();
 
 window.KokoroTTSWeb = {
   preload: kokoroApi.preload.bind(kokoroApi),
+  importVoice: kokoroApi.importVoice.bind(kokoroApi),
   synthesize: kokoroApi.synthesize.bind(kokoroApi),
   voices
 };

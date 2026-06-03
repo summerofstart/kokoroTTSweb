@@ -1,7 +1,9 @@
 import { KokoroTTS } from "kokoro-js";
 import {
   MODEL_ID,
+  VOICE_CACHE_NAME,
   disableWebGPUFallback,
+  getVoiceUrl,
   type KokoroDType,
   type KokoroApiConfig,
   type KokoroGenerateOptions,
@@ -21,6 +23,57 @@ let loaded: {
 } | null = null;
 let loading: Promise<NonNullable<typeof loaded>> | null = null;
 let loadingKey: string | null = null;
+
+const englishVoices = new Set([
+  "af_heart",
+  "af_alloy",
+  "af_aoede",
+  "af_bella",
+  "af_jessica",
+  "af_kore",
+  "af_nicole",
+  "af_nova",
+  "af_river",
+  "af_sarah",
+  "af_sky",
+  "am_adam",
+  "am_echo",
+  "am_eric",
+  "am_fenrir",
+  "am_liam",
+  "am_michael",
+  "am_onyx",
+  "am_puck",
+  "am_santa",
+  "bf_emma",
+  "bf_isabella",
+  "bm_george",
+  "bm_lewis",
+  "bf_alice",
+  "bf_lily",
+  "bm_daniel",
+  "bm_fable"
+]);
+
+export async function importKokoroVoice(voiceId: string, data: ArrayBuffer) {
+  if (!voiceId || !/^[a-z][a-z0-9_]{1,48}$/i.test(voiceId)) {
+    throw new Error("Voice id must use letters, numbers, and underscores.");
+  }
+  if (data.byteLength < 256 * 4) {
+    throw new Error("Voice file is too small to be a Kokoro voice .bin.");
+  }
+
+  const cache = await caches.open(VOICE_CACHE_NAME);
+  await cache.put(
+    getVoiceUrl(voiceId),
+    new Response(data.slice(0), {
+      headers: {
+        "Content-Type": "application/octet-stream"
+      }
+    })
+  );
+  return voiceId;
+}
 
 function splitSentences(text: string) {
   return text
@@ -95,7 +148,7 @@ async function generateAudio(model: TTS, text: string, options: KokoroGenerateOp
   const voice = options.voice ?? "af_heart";
   const speed = options.speed ?? 1;
 
-  if (voice.startsWith("jf_") || voice.startsWith("jm_")) {
+  if (!englishVoices.has(voice)) {
     const { input_ids } = model.tokenizer(text, { truncation: true });
     return model.generate_from_ids(input_ids, { voice: voice as never, speed });
   }

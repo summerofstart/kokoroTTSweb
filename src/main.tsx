@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Download, Gauge, Loader2, Play, Sparkles } from "lucide-react";
+import { Download, Gauge, Loader2, Play, Sparkles, Upload } from "lucide-react";
 import { kokoroApi, voices, type KokoroDType, type KokoroDevice, type KokoroVoice } from "./kokoro-api";
 import "./styles.css";
 
@@ -36,6 +36,7 @@ function App() {
     "Kokoro runs fully in your browser. Type a sentence, choose a voice, and generate speech locally."
   );
   const [voice, setVoice] = useState<KokoroVoice>("af_heart");
+  const [customVoices, setCustomVoices] = useState<Array<[string, string, string]>>([]);
   const [device, setDevice] = useState<KokoroDevice>("auto");
   const [dtype, setDType] = useState<KokoroDType>("q4");
   const [speed, setSpeed] = useState(1);
@@ -50,7 +51,8 @@ function App() {
   const queryRunRef = useRef(false);
 
   const charCount = text.trim().length;
-  const selectedVoice = useMemo(() => voices.find(([id]) => id === voice), [voice]);
+  const voiceOptions = useMemo(() => [...voices, ...customVoices] as Array<[string, string, string]>, [customVoices]);
+  const selectedVoice = useMemo(() => voiceOptions.find(([id]) => id === voice), [voice, voiceOptions]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -182,6 +184,37 @@ function App() {
     }
   }
 
+  async function importVoiceFile(file: File | null) {
+    if (!file) return;
+    setError(null);
+
+    if (!file.name.toLowerCase().endsWith(".bin")) {
+      setError("Kokoro browser voice upload supports .bin voice packs, not WAV/MP3 cloning.");
+      return;
+    }
+
+    const baseName = file.name.replace(/\.bin$/i, "").replace(/[^a-z0-9_]/gi, "_").toLowerCase();
+    const voiceId = baseName.startsWith("custom_") ? baseName : `custom_${baseName}`;
+
+    setBusy(true);
+    setStatus("Importing voice");
+    try {
+      const data = await file.arrayBuffer();
+      const importedVoiceId = await kokoroApi.importVoice(voiceId, data);
+      setCustomVoices((current) => {
+        if (current.some(([id]) => id === importedVoiceId)) return current;
+        return [...current, [importedVoiceId, file.name.replace(/\.bin$/i, ""), "Uploaded voice"]];
+      });
+      setVoice(importedVoiceId);
+      setStatus("Voice imported");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Voice import failed");
+      setStatus("Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="app">
       <section className="workspace">
@@ -212,7 +245,7 @@ function App() {
           <label>
             Voice
             <select value={voice} onChange={(event) => setVoice(event.target.value as KokoroVoice)}>
-              {voices.map(([id, name, region]) => (
+              {voiceOptions.map(([id, name, region]) => (
                 <option key={id} value={id}>
                   {name} - {region}
                 </option>
@@ -269,6 +302,11 @@ function App() {
             {busy ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
             Generate
           </button>
+          <label className="fileButton">
+            <Upload size={18} />
+            Voice .bin
+            <input type="file" accept=".bin,application/octet-stream" onChange={(event) => void importVoiceFile(event.target.files?.[0] ?? null)} />
+          </label>
           <a className={!audioUrl ? "disabled" : ""} href={audioUrl ?? undefined} download="kokoro.wav">
             <Download size={18} />
             WAV

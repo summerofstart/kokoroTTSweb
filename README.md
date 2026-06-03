@@ -121,3 +121,18 @@ The Vite `base` setting is `./`, so the app works from a project page path like 
 ## Browser notes
 
 The first generation downloads the Kokoro ONNX model into the browser cache. WASM is the safest runtime. WebGPU can be faster on browsers and devices that support it.
+
+## Voice upload
+
+The browser app supports Kokoro-compatible `.bin` voice packs. Uploading WAV/MP3 recordings is not enough to clone a voice; that requires a separate voice-training pipeline. Uploaded `.bin` files are cached locally in the browser and can be selected immediately.
+
+```js
+const data = await file.arrayBuffer();
+await window.KokoroTTSWeb.importVoice("custom_voice", data);
+const result = await window.KokoroTTSWeb.synthesize({
+  text: "Using an uploaded Kokoro voice pack.",
+  voice: "custom_voice",
+  device: "auto",
+  dtype: "q4"
+});
+```

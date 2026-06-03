@@ -1,4 +1,5 @@
 export const MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX";
+export const VOICE_CACHE_NAME = "kokoro-voices";
 const WEBGPU_DISABLED_KEY = "kokoro.webgpu.disabled";
 
 export const voices = [
@@ -19,7 +20,8 @@ export const voices = [
   ["jm_kumo", "Kumo", "Japanese"]
 ] as const;
 
-export type KokoroVoice = (typeof voices)[number][0];
+export type BuiltInKokoroVoice = (typeof voices)[number][0];
+export type KokoroVoice = BuiltInKokoroVoice | string;
 export type KokoroDevice = "auto" | "wasm" | "webgpu";
 export type KokoroRuntimeDevice = "wasm" | "webgpu";
 export type KokoroDType = "q4" | "q8" | "q4f16" | "fp32";
@@ -51,12 +53,18 @@ export type KokoroSynthesisResult = {
 
 export type KokoroWorkerRequest =
   | { id: number; type: "preload"; config?: KokoroApiConfig }
-  | { id: number; type: "generate"; options: KokoroGenerateOptions };
+  | { id: number; type: "generate"; options: KokoroGenerateOptions }
+  | { id: number; type: "importVoice"; voiceId: string; data: ArrayBuffer };
 
 export type KokoroWorkerResponse =
   | { id: number; type: "ready"; runtime: KokoroSynthesisResult["runtime"] }
+  | { id: number; type: "voiceImported"; voiceId: string }
   | { id: number; type: "result"; result: KokoroSynthesisResult }
   | { id: number; type: "error"; message: string };
+
+export function getVoiceUrl(voiceId: string) {
+  return `${MODEL_ID.replace("onnx-community/", "https://huggingface.co/onnx-community/")}/resolve/main/voices/${voiceId}.bin`;
+}
 
 export function disableWebGPUFallback() {
   try {
