@@ -141,4 +141,6 @@ const result = await window.KokoroTTSWeb.synthesize({
 
 The **Voice Vector** tab generates Kokoro-compatible `.bin` voice vector files by blending two existing Kokoro voice packs. It uses WebGPU compute when available and falls back to CPU otherwise.
 
-This is not WAV voice cloning. It does not learn a speaker from a recording. It creates a new style-vector file from existing Kokoro vectors, which can be downloaded or imported into the Kokoro tab immediately.
+You can upload your own reference WAV/MP3 to auto-select a close blend. The app estimates pitch, brightness, and level, then picks source voices and mix/gain values before generating the `.bin`.
+
+This is not true WAV voice cloning. It does not learn a speaker from a recording. It creates a new style-vector file from existing Kokoro vectors, which can be downloaded or imported into the Kokoro tab immediately.
