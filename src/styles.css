@@ -17,6 +17,38 @@ body {
   min-height: 100vh;
 }
 
+.modebar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(24, 32, 28, 0.14);
+  background: rgba(245, 242, 234, 0.94);
+  backdrop-filter: blur(12px);
+}
+
+.modebar button {
+  min-height: 40px;
+  background: #fffdf8;
+  color: #26332e;
+  border-color: rgba(24, 32, 28, 0.18);
+}
+
+.modebar button.active {
+  background: #1f6356;
+  color: white;
+}
+
+.f5Loading {
+  min-height: 80vh;
+  display: grid;
+  place-items: center;
+  color: #26332e;
+  font-weight: 900;
+}
+
 button,
 select,
 input,

@@ -136,3 +136,11 @@ const result = await window.KokoroTTSWeb.synthesize({
   dtype: "q4"
 });
 ```
+
+## F5-TTS WebGPU
+
+The app also includes an experimental F5-TTS WebGPU mode for real browser-side voice cloning from a short reference WAV/MP3 sample. Open the **F5-TTS WebGPU** tab, upload or record a 5-10 second reference clip, provide or auto-transcribe the reference text, then generate new speech.
+
+F5-TTS downloads much larger ONNX assets than Kokoro, including encoder, transformer, decoder, and optional transcription models. WebGPU is used when available with WASM fallback, and the first run can take several minutes depending on browser, GPU, and network cache.
+
+F5-TTS WebGPU implementation is vendored from [`nsarang/voice-cloning-f5-tts`](https://github.com/nsarang/voice-cloning-f5-tts), which runs F5-TTS locally with ONNX Runtime Web.
