@@ -114,3 +114,120 @@
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+.f5-theme {
+  color: #18201c;
+  background:
+    linear-gradient(120deg, rgba(31, 99, 86, 0.12), transparent 34%),
+    linear-gradient(300deg, rgba(183, 56, 45, 0.1), transparent 38%),
+    #f5f2ea !important;
+}
+
+.f5-theme .bg-gradient-to-br,
+.f5-theme .bg-gradient-to-r {
+  background-image: none !important;
+}
+
+.f5-theme .text-transparent,
+.f5-theme .bg-clip-text {
+  color: #18201c !important;
+  -webkit-text-fill-color: #18201c !important;
+}
+
+.f5-theme .bg-slate-800\/50,
+.f5-theme .bg-slate-800\/40,
+.f5-theme .bg-slate-800\/30,
+.f5-theme .bg-slate-700\/50,
+.f5-theme .bg-slate-700\/30,
+.f5-theme .bg-slate-700,
+.f5-theme .bg-slate-600,
+.f5-theme .bg-purple-500\/20,
+.f5-theme .bg-red-500\/20 {
+  background-color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.f5-theme .border-slate-700\/50,
+.f5-theme .border-slate-600\/50,
+.f5-theme .border-slate-600\/30 {
+  border-color: rgba(24, 32, 28, 0.14) !important;
+}
+
+.f5-theme .text-white,
+.f5-theme .text-slate-200,
+.f5-theme .text-slate-300,
+.f5-theme .text-slate-400,
+.f5-theme .text-slate-500,
+.f5-theme .text-cyan-300,
+.f5-theme .text-cyan-400,
+.f5-theme .text-purple-300,
+.f5-theme .text-purple-400,
+.f5-theme .text-green-300,
+.f5-theme .text-green-400,
+.f5-theme .text-amber-300 {
+  color: #26332e !important;
+}
+
+.f5-theme button,
+.f5-theme .bg-emerald-500,
+.f5-theme .from-emerald-500,
+.f5-theme .from-cyan-500,
+.f5-theme .to-cyan-500,
+.f5-theme .to-purple-500 {
+  background: #1f6356 !important;
+  color: white !important;
+  border-color: transparent !important;
+}
+
+.f5-theme button:disabled,
+.f5-theme .cursor-not-allowed {
+  background: rgba(38, 51, 46, 0.22) !important;
+  color: rgba(38, 51, 46, 0.62) !important;
+}
+
+.f5-theme input,
+.f5-theme textarea {
+  background: #fffdf8 !important;
+  color: #18201c !important;
+  border-color: rgba(24, 32, 28, 0.18) !important;
+}
+
+.f5-theme input::placeholder,
+.f5-theme textarea::placeholder {
+  color: #68716d !important;
+}
+
+.f5-theme .rounded-2xl,
+.f5-theme .rounded-xl,
+.f5-theme .rounded-lg,
+.f5-theme .rounded-full {
+  border-radius: 8px !important;
+}
+
+.f5-theme .shadow-2xl,
+.f5-theme .shadow-xl,
+.f5-theme .shadow-lg {
+  box-shadow: 0 24px 70px rgba(24, 32, 28, 0.08) !important;
+}
+
+.f5-theme .hover\:bg-slate-700\/50:hover,
+.f5-theme .hover\:bg-slate-600:hover,
+.f5-theme .hover\:bg-purple-500\/30:hover {
+  background-color: #edf5f1 !important;
+}
+
+.f5-theme .border-dashed {
+  background-color: #fffdf8 !important;
+}
+
+.f5-theme .progress,
+.f5-theme .bg-gradient-to-r.h-full {
+  background-color: #1f6356 !important;
+}
+
+.f5-theme .slider::-webkit-slider-thumb {
+  background: #1f6356;
+}
+
+.f5-theme .slider::-moz-range-thumb {
+  background: #1f6356;
+}
