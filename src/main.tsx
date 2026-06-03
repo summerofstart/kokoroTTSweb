@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Mic, Sparkles } from "lucide-react";
+import { SlidersHorizontal, Sparkles } from "lucide-react";
 import { KokoroApp } from "./KokoroApp";
-import { QwenApp } from "./QwenApp";
+import { VoiceVectorApp } from "./VoiceVectorApp";
 import "./styles.css";
 
 function App() {
-  const [mode, setMode] = useState<"kokoro" | "qwen">("kokoro");
+  const [mode, setMode] = useState<"kokoro" | "vector">("kokoro");
 
   return (
     <>
@@ -15,12 +15,12 @@ function App() {
           <Sparkles size={18} />
           Kokoro
         </button>
-        <button className={mode === "qwen" ? "active" : ""} onClick={() => setMode("qwen")}>
-          <Mic size={18} />
-          Qwen3TTS
+        <button className={mode === "vector" ? "active" : ""} onClick={() => setMode("vector")}>
+          <SlidersHorizontal size={18} />
+          Voice Vector
         </button>
       </nav>
-      {mode === "kokoro" ? <KokoroApp /> : <QwenApp />}
+      {mode === "kokoro" ? <KokoroApp /> : <VoiceVectorApp />}
     </>
   );
 }

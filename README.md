@@ -137,22 +137,8 @@ const result = await window.KokoroTTSWeb.synthesize({
 });
 ```
 
-## Qwen3TTS
+## Voice Vector Generator
 
-The app includes a Qwen3TTS mode for [`jasonzhang76/Qwen3-TTS-12Hz-0.6B-CustomVoice-ONNX`](https://huggingface.co/jasonzhang76/Qwen3-TTS-12Hz-0.6B-CustomVoice-ONNX).
+The **Voice Vector** tab generates Kokoro-compatible `.bin` voice vector files by blending two existing Kokoro voice packs. It uses WebGPU compute when available and falls back to CPU otherwise.
 
-This model is too large for practical GitHub Pages-only browser execution: the ONNX export includes ~1.7 GB prefill, ~1.7 GB decode, ~420 MB code predictor, ~437 MB vocoder, and ~1.4 GB embeddings. Use the Qwen3TTS tab as a frontend for a separate backend endpoint that runs ONNX Runtime locally or on a GPU server.
-
-Expected backend request:
-
-```http
-POST /api/qwen3tts
-Content-Type: multipart/form-data
-
-text=Hello
-speaker=ryan
-language=english
-reference_audio=@optional.wav
-```
-
-Expected backend response: `audio/wav` or another browser-playable audio blob.
+This is not WAV voice cloning. It does not learn a speaker from a recording. It creates a new style-vector file from existing Kokoro vectors, which can be downloaded or imported into the Kokoro tab immediately.

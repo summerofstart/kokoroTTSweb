@@ -203,8 +203,12 @@ input:not([type]) {
   outline: none;
 }
 
-.qwenControls {
+.twoControls {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.vectorControls {
+  grid-template-columns: 1fr 1fr 1fr;
 }
 
 .hint {
