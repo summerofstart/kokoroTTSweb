@@ -15,6 +15,7 @@ type ApiMessage =
         speed?: number;
         device?: KokoroDevice;
         dtype?: KokoroDType;
+        batchSize?: number;
       };
     };
 
@@ -38,6 +39,7 @@ function App() {
   const [device, setDevice] = useState<KokoroDevice>("auto");
   const [dtype, setDType] = useState<KokoroDType>("q4");
   const [speed, setSpeed] = useState(1);
+  const [batchSize, setBatchSize] = useState(8);
   const [status, setStatus] = useState("Ready");
   const [runtime, setRuntime] = useState("auto / q4");
   const [elapsed, setElapsed] = useState<number | null>(null);
@@ -59,12 +61,14 @@ function App() {
     const queryDevice = params.get("device");
     const queryDType = params.get("dtype");
     const querySpeed = Number(params.get("speed") ?? "1");
+    const queryBatchSize = Number(params.get("batchSize") ?? "8");
 
     setText(queryText);
     if (isVoice(queryVoice)) setVoice(queryVoice);
     if (isDevice(queryDevice)) setDevice(queryDevice);
     if (isDType(queryDType)) setDType(queryDType);
     if (Number.isFinite(querySpeed)) setSpeed(Math.min(1.35, Math.max(0.7, querySpeed)));
+    if (Number.isFinite(queryBatchSize)) setBatchSize(Math.min(32, Math.max(1, Math.round(queryBatchSize))));
   }, []);
 
   useEffect(() => {
@@ -75,7 +79,7 @@ function App() {
       void generate();
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [text, voice, device, dtype, speed]);
+  }, [text, voice, device, dtype, speed, batchSize]);
 
   useEffect(() => {
     async function handleMessage(event: MessageEvent<ApiMessage>) {
@@ -156,7 +160,7 @@ function App() {
       setAudioUrl(null);
 
       setStatus("Generating speech");
-      const result = await kokoroApi.synthesize({ text, voice, speed, device, dtype });
+      const result = await kokoroApi.synthesize({ text, voice, speed, device, dtype, batchSize });
       const blob = new Blob([result.wav], { type: result.mimeType });
       const url = URL.createObjectURL(blob);
 
@@ -244,6 +248,18 @@ function App() {
               step="0.05"
               value={speed}
               onChange={(event) => setSpeed(Number(event.target.value))}
+            />
+          </label>
+
+          <label>
+            Batch <span>{batchSize}</span>
+            <input
+              type="range"
+              min="1"
+              max="32"
+              step="1"
+              value={batchSize}
+              onChange={(event) => setBatchSize(Number(event.target.value))}
             />
           </label>
         </div>

@@ -31,7 +31,8 @@ const result = await kokoroApi.synthesize({
   voice: "af_heart",
   speed: 1,
   device: "auto",
-  dtype: "q4"
+  dtype: "q4",
+  batchSize: 8
 });
 
 const audioUrl = URL.createObjectURL(new Blob([result.wav], { type: result.mimeType }));
@@ -48,7 +49,7 @@ GitHub Pages cannot run a server-side HTTP API, but the published page can be us
 Open this URL to preload the app, synthesize, and play:
 
 ```text
-https://summerofstart.github.io/kokoroTTSweb/?text=Hello%20from%20Kokoro&voice=af_heart&speed=1&device=auto&dtype=q4&autoplay=1
+https://summerofstart.github.io/kokoroTTSweb/?text=Hello%20from%20Kokoro&voice=af_heart&speed=1&device=auto&dtype=q4&batchSize=8&autoplay=1
 ```
 
 ### iframe postMessage API
@@ -78,7 +79,8 @@ https://summerofstart.github.io/kokoroTTSweb/?text=Hello%20from%20Kokoro&voice=a
           voice: "af_heart",
           speed: 1,
           device: "auto",
-          dtype: "q4"
+          dtype: "q4",
+          batchSize: 8
         }
       },
       "https://summerofstart.github.io"
@@ -94,7 +96,8 @@ const result = await window.KokoroTTSWeb.synthesize({
   text: "Run Kokoro from the page console.",
   voice: "af_heart",
   device: "auto",
-  dtype: "q4"
+  dtype: "q4",
+  batchSize: 8
 });
 new Audio(URL.createObjectURL(new Blob([result.wav], { type: result.mimeType }))).play();
 ```

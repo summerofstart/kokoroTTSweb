@@ -27,6 +27,7 @@ export type KokoroGenerateOptions = {
   speed?: number;
   device?: KokoroDevice;
   dtype?: KokoroDType;
+  batchSize?: number;
 };
 
 export type KokoroApiConfig = {
