@@ -13,6 +13,9 @@ export const voices = [
   ["bm_daniel", "Daniel", "British English"],
   ["bm_fable", "Fable", "British English"],
   ["jf_alpha", "Alpha", "Japanese"],
+  ["jf_gongitsune", "Gongitsune", "Japanese"],
+  ["jf_nezumi", "Nezumi", "Japanese"],
+  ["jf_tebukuro", "Tebukuro", "Japanese"],
   ["jm_kumo", "Kumo", "Japanese"]
 ] as const;
 

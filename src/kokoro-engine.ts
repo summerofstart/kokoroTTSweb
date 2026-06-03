@@ -11,6 +11,7 @@ import {
 } from "./kokoro-types";
 
 type TTS = Awaited<ReturnType<typeof KokoroTTS.from_pretrained>>;
+type RawAudio = Awaited<ReturnType<TTS["generate"]>>;
 
 let loaded: {
   key: string;
@@ -85,9 +86,21 @@ function concatWavs(wavs: ArrayBuffer[]) {
   return output.buffer;
 }
 
-function normalizeWavBuffer(wav: ReturnType<Awaited<TTS["generate"]>["toWav"]>) {
+function normalizeWavBuffer(wav: ReturnType<RawAudio["toWav"]>) {
   const bytes = wavToBytes(wav);
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+}
+
+async function generateAudio(model: TTS, text: string, options: KokoroGenerateOptions) {
+  const voice = options.voice ?? "af_heart";
+  const speed = options.speed ?? 1;
+
+  if (voice.startsWith("jf_") || voice.startsWith("jm_")) {
+    const { input_ids } = model.tokenizer(text, { truncation: true });
+    return model.generate_from_ids(input_ids, { voice: voice as never, speed });
+  }
+
+  return model.generate(text, { voice: voice as never, speed });
 }
 
 export async function preloadKokoro(
@@ -144,10 +157,7 @@ export async function synthesizeKokoro(options: KokoroGenerateOptions): Promise<
   const wavs: ArrayBuffer[] = [];
 
   for (const chunk of chunks) {
-    const audio = await model.tts.generate(chunk, {
-      voice: options.voice ?? "af_heart",
-      speed: options.speed ?? 1
-    });
+    const audio = await generateAudio(model.tts, chunk, options);
     wavs.push(normalizeWavBuffer(audio.toWav()));
   }
 
