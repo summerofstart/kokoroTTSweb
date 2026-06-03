@@ -15,6 +15,16 @@ export type {
 } from "./kokoro-types";
 export { voices } from "./kokoro-types";
 
+declare global {
+  interface Window {
+    KokoroTTSWeb?: {
+      preload: KokoroBrowserAPI["preload"];
+      synthesize: KokoroBrowserAPI["synthesize"];
+      voices: typeof import("./kokoro-types").voices;
+    };
+  }
+}
+
 type Pending = {
   resolve: (value: KokoroSynthesisResult | KokoroSynthesisResult["runtime"]) => void;
   reject: (reason: Error) => void;
@@ -75,3 +85,9 @@ export class KokoroBrowserAPI {
 }
 
 export const kokoroApi = new KokoroBrowserAPI();
+
+window.KokoroTTSWeb = {
+  preload: kokoroApi.preload.bind(kokoroApi),
+  synthesize: kokoroApi.synthesize.bind(kokoroApi),
+  voices
+};

@@ -4,6 +4,32 @@ import { Download, Gauge, Loader2, Play, Sparkles } from "lucide-react";
 import { kokoroApi, voices, type KokoroDType, type KokoroDevice, type KokoroVoice } from "./kokoro-api";
 import "./styles.css";
 
+type ApiMessage =
+  | { type: "kokoro:preload"; id?: string; config?: { device?: KokoroDevice; dtype?: KokoroDType } }
+  | {
+      type: "kokoro:synthesize";
+      id?: string;
+      options: {
+        text: string;
+        voice?: KokoroVoice;
+        speed?: number;
+        device?: KokoroDevice;
+        dtype?: KokoroDType;
+      };
+    };
+
+function isVoice(value: string | null): value is KokoroVoice {
+  return voices.some(([id]) => id === value);
+}
+
+function isDevice(value: string | null): value is KokoroDevice {
+  return value === "auto" || value === "wasm" || value === "webgpu";
+}
+
+function isDType(value: string | null): value is KokoroDType {
+  return value === "q4" || value === "q8" || value === "q4f16" || value === "fp32";
+}
+
 function App() {
   const [text, setText] = useState(
     "Kokoro runs fully in your browser. Type a sentence, choose a voice, and generate speech locally."
@@ -19,9 +45,83 @@ function App() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const queryRunRef = useRef(false);
 
   const charCount = text.trim().length;
   const selectedVoice = useMemo(() => voices.find(([id]) => id === voice), [voice]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const queryText = params.get("text");
+    if (!queryText) return;
+
+    const queryVoice = params.get("voice");
+    const queryDevice = params.get("device");
+    const queryDType = params.get("dtype");
+    const querySpeed = Number(params.get("speed") ?? "1");
+
+    setText(queryText);
+    if (isVoice(queryVoice)) setVoice(queryVoice);
+    if (isDevice(queryDevice)) setDevice(queryDevice);
+    if (isDType(queryDType)) setDType(queryDType);
+    if (Number.isFinite(querySpeed)) setSpeed(Math.min(1.35, Math.max(0.7, querySpeed)));
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (queryRunRef.current || params.get("autoplay") !== "1" || !params.get("text")) return;
+    queryRunRef.current = true;
+    const timer = window.setTimeout(() => {
+      void generate();
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [text, voice, device, dtype, speed]);
+
+  useEffect(() => {
+    async function handleMessage(event: MessageEvent<ApiMessage>) {
+      const message = event.data;
+      if (!message || typeof message !== "object") return;
+
+      try {
+        if (message.type === "kokoro:preload") {
+          const runtime = await kokoroApi.preload(message.config);
+          if ("postMessage" in (event.source ?? {})) {
+            event.source?.postMessage({ type: "kokoro:ready", id: message.id, runtime }, event.origin);
+          }
+          return;
+        }
+
+        if (message.type === "kokoro:synthesize") {
+          const result = await kokoroApi.synthesize(message.options);
+          if ("postMessage" in (event.source ?? {})) {
+            event.source?.postMessage(
+              {
+                type: "kokoro:result",
+                id: message.id,
+                result
+              },
+              event.origin,
+              [result.wav]
+            );
+          }
+        }
+      } catch (err) {
+        if ("postMessage" in (event.source ?? {})) {
+          event.source?.postMessage(
+            {
+              type: "kokoro:error",
+              id: message.id,
+              message: err instanceof Error ? err.message : "Unknown Kokoro error"
+            },
+            event.origin
+          );
+        }
+      }
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   useEffect(() => {
     let alive = true;

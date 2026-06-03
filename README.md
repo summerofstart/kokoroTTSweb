@@ -39,6 +39,66 @@ const audioUrl = URL.createObjectURL(new Blob([result.wav], { type: result.mimeT
 
 Use `device: "auto"` for fastest practical startup. It selects WebGPU when available and falls back to WASM. `q4` is the fastest default; WebGPU automatically maps it to `q4f16` for GPU execution.
 
+## Public GitHub Pages API
+
+GitHub Pages cannot run a server-side HTTP API, but the published page can be used as a browser API.
+
+### URL execution
+
+Open this URL to preload the app, synthesize, and play:
+
+```text
+https://summerofstart.github.io/kokoroTTSweb/?text=Hello%20from%20Kokoro&voice=af_heart&speed=1&device=auto&dtype=q4&autoplay=1
+```
+
+### iframe postMessage API
+
+```html
+<iframe id="kokoro" src="https://summerofstart.github.io/kokoroTTSweb/" hidden></iframe>
+<script>
+  const frame = document.getElementById("kokoro");
+
+  window.addEventListener("message", (event) => {
+    if (event.origin !== "https://summerofstart.github.io") return;
+    if (event.data.type !== "kokoro:result") return;
+
+    const audioUrl = URL.createObjectURL(
+      new Blob([event.data.result.wav], { type: event.data.result.mimeType })
+    );
+    new Audio(audioUrl).play();
+  });
+
+  frame.addEventListener("load", () => {
+    frame.contentWindow.postMessage(
+      {
+        type: "kokoro:synthesize",
+        id: "demo-1",
+        options: {
+          text: "Kokoro TTS from the GitHub Pages API.",
+          voice: "af_heart",
+          speed: 1,
+          device: "auto",
+          dtype: "q4"
+        }
+      },
+      "https://summerofstart.github.io"
+    );
+  });
+</script>
+```
+
+### Same-page console API
+
+```js
+const result = await window.KokoroTTSWeb.synthesize({
+  text: "Run Kokoro from the page console.",
+  voice: "af_heart",
+  device: "auto",
+  dtype: "q4"
+});
+new Audio(URL.createObjectURL(new Blob([result.wav], { type: result.mimeType }))).play();
+```
+
 ## GitHub Pages
 
 1. Push this repository to GitHub.
