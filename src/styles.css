@@ -41,14 +41,6 @@ body {
   color: white;
 }
 
-.f5Loading {
-  min-height: 80vh;
-  display: grid;
-  place-items: center;
-  color: #26332e;
-  font-weight: 900;
-}
-
 button,
 select,
 input,
@@ -198,6 +190,32 @@ select {
 input[type="range"] {
   width: 100%;
   accent-color: #1f6356;
+}
+
+input[type="text"],
+input:not([type]) {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid rgba(24, 32, 28, 0.18);
+  background: #fffdf8;
+  color: #18201c;
+  outline: none;
+}
+
+.qwenControls {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hint {
+  margin: 0;
+  color: #5c6862;
+  font-weight: 800;
+}
+
+.sourceLink {
+  color: #1f6356;
+  font-weight: 900;
 }
 
 button,

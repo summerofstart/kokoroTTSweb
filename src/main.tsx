@@ -1,14 +1,12 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Mic, Sparkles } from "lucide-react";
 import { KokoroApp } from "./KokoroApp";
+import { QwenApp } from "./QwenApp";
 import "./styles.css";
-import "./f5/index.css";
-
-const F5App = lazy(() => import("./f5/App.jsx"));
 
 function App() {
-  const [mode, setMode] = useState<"kokoro" | "f5">("kokoro");
+  const [mode, setMode] = useState<"kokoro" | "qwen">("kokoro");
 
   return (
     <>
@@ -17,18 +15,12 @@ function App() {
           <Sparkles size={18} />
           Kokoro
         </button>
-        <button className={mode === "f5" ? "active" : ""} onClick={() => setMode("f5")}>
+        <button className={mode === "qwen" ? "active" : ""} onClick={() => setMode("qwen")}>
           <Mic size={18} />
-          F5-TTS WebGPU
+          Qwen3TTS
         </button>
       </nav>
-      {mode === "kokoro" ? (
-        <KokoroApp />
-      ) : (
-        <Suspense fallback={<div className="f5Loading">Loading F5-TTS WebGPU engine...</div>}>
-          <F5App />
-        </Suspense>
-      )}
+      {mode === "kokoro" ? <KokoroApp /> : <QwenApp />}
     </>
   );
 }

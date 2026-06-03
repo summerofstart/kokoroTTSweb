@@ -137,10 +137,22 @@ const result = await window.KokoroTTSWeb.synthesize({
 });
 ```
 
-## F5-TTS WebGPU
+## Qwen3TTS
 
-The app also includes an experimental F5-TTS WebGPU mode for real browser-side voice cloning from a short reference WAV/MP3 sample. Open the **F5-TTS WebGPU** tab, upload or record a 5-10 second reference clip, provide or auto-transcribe the reference text, then generate new speech.
+The app includes a Qwen3TTS mode for [`jasonzhang76/Qwen3-TTS-12Hz-0.6B-CustomVoice-ONNX`](https://huggingface.co/jasonzhang76/Qwen3-TTS-12Hz-0.6B-CustomVoice-ONNX).
 
-F5-TTS downloads much larger ONNX assets than Kokoro, including encoder, transformer, decoder, and optional transcription models. WebGPU is used when available with WASM fallback, and the first run can take several minutes depending on browser, GPU, and network cache.
+This model is too large for practical GitHub Pages-only browser execution: the ONNX export includes ~1.7 GB prefill, ~1.7 GB decode, ~420 MB code predictor, ~437 MB vocoder, and ~1.4 GB embeddings. Use the Qwen3TTS tab as a frontend for a separate backend endpoint that runs ONNX Runtime locally or on a GPU server.
 
-F5-TTS WebGPU implementation is vendored from [`nsarang/voice-cloning-f5-tts`](https://github.com/nsarang/voice-cloning-f5-tts), which runs F5-TTS locally with ONNX Runtime Web.
+Expected backend request:
+
+```http
+POST /api/qwen3tts
+Content-Type: multipart/form-data
+
+text=Hello
+speaker=ryan
+language=english
+reference_audio=@optional.wav
+```
+
+Expected backend response: `audio/wav` or another browser-playable audio blob.
