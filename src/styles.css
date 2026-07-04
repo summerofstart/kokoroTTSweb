@@ -207,6 +207,23 @@ input:not([type]) {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.checkboxLabel {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding-top: 22px;
+  cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-height: auto;
+  accent-color: #1f6356;
+  cursor: pointer;
+}
+
 .vectorControls {
   grid-template-columns: 1fr 1fr 1fr;
 }

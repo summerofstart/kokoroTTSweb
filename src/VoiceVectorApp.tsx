@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Download, Loader2, Mic, Save, SlidersHorizontal, Upload } from "lucide-react";
 import { getVoiceUrl, voices, type KokoroVoice } from "./kokoro-types";
 import { kokoroApi } from "./kokoro-api";
+import { getWebGPUMath, type AudioAnalysisResult } from "./webgpu-math";
 
 type Backend = "webgpu" | "cpu";
 
@@ -11,159 +12,8 @@ async function loadVoiceVector(voice: string) {
   return new Float32Array(await response.arrayBuffer());
 }
 
-function blendCpu(a: Float32Array, b: Float32Array, mix: number, gain: number) {
-  const length = Math.min(a.length, b.length);
-  const output = new Float32Array(length);
-  for (let index = 0; index < length; index++) {
-    output[index] = (a[index] * (1 - mix) + b[index] * mix) * gain;
-  }
-  return output;
-}
-
-async function blendWebGpu(a: Float32Array, b: Float32Array, mix: number, gain: number) {
-  if (!navigator.gpu) throw new Error("WebGPU is not available");
-
-  const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
-  if (!adapter) throw new Error("Failed to get GPU adapter");
-  const device = await adapter.requestDevice();
-  const length = Math.min(a.length, b.length);
-  const byteLength = length * 4;
-
-  const shader = device.createShaderModule({
-    code: `
-      struct Params {
-        mix: f32,
-        gain: f32,
-        length: u32,
-        pad: u32,
-      };
-
-      @group(0) @binding(0) var<storage, read> voiceA: array<f32>;
-      @group(0) @binding(1) var<storage, read> voiceB: array<f32>;
-      @group(0) @binding(2) var<storage, read_write> outVoice: array<f32>;
-      @group(0) @binding(3) var<uniform> params: Params;
-
-      @compute @workgroup_size(256)
-      fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-        let i = gid.x;
-        if (i >= params.length) {
-          return;
-        }
-        outVoice[i] = ((voiceA[i] * (1.0 - params.mix)) + (voiceB[i] * params.mix)) * params.gain;
-      }
-    `
-  });
-
-  const makeStorage = (data?: Float32Array) => {
-    const buffer = device.createBuffer({
-      size: byteLength,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
-    });
-    if (data) device.queue.writeBuffer(buffer, 0, data.subarray(0, length));
-    return buffer;
-  };
-
-  const bufferA = makeStorage(a);
-  const bufferB = makeStorage(b);
-  const output = makeStorage();
-  const params = device.createBuffer({
-    size: 16,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-  });
-  const paramsBytes = new ArrayBuffer(16);
-  const view = new DataView(paramsBytes);
-  view.setFloat32(0, mix, true);
-  view.setFloat32(4, gain, true);
-  view.setUint32(8, length, true);
-  device.queue.writeBuffer(params, 0, paramsBytes);
-
-  const readback = device.createBuffer({
-    size: byteLength,
-    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-  });
-
-  const pipeline = device.createComputePipeline({
-    layout: "auto",
-    compute: { module: shader, entryPoint: "main" }
-  });
-  const bindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: bufferA } },
-      { binding: 1, resource: { buffer: bufferB } },
-      { binding: 2, resource: { buffer: output } },
-      { binding: 3, resource: { buffer: params } }
-    ]
-  });
-
-  const encoder = device.createCommandEncoder();
-  const pass = encoder.beginComputePass();
-  pass.setPipeline(pipeline);
-  pass.setBindGroup(0, bindGroup);
-  pass.dispatchWorkgroups(Math.ceil(length / 256));
-  pass.end();
-  encoder.copyBufferToBuffer(output, 0, readback, 0, byteLength);
-  device.queue.submit([encoder.finish()]);
-
-  await readback.mapAsync(GPUMapMode.READ);
-  const result = new Float32Array(readback.getMappedRange().slice(0));
-  readback.unmap();
-  return result;
-}
-
 function toArrayBuffer(vector: Float32Array) {
   return vector.buffer.slice(vector.byteOffset, vector.byteOffset + vector.byteLength);
-}
-
-function estimatePitch(samples: Float32Array, sampleRate: number) {
-  const frameSize = Math.min(4096, samples.length);
-  const start = Math.max(0, Math.floor(samples.length / 2 - frameSize / 2));
-  const frame = samples.slice(start, start + frameSize);
-  let bestLag = 0;
-  let bestScore = -Infinity;
-  const minLag = Math.floor(sampleRate / 320);
-  const maxLag = Math.floor(sampleRate / 70);
-
-  for (let lag = minLag; lag <= maxLag; lag++) {
-    let score = 0;
-    for (let index = 0; index < frame.length - lag; index++) {
-      score += frame[index] * frame[index + lag];
-    }
-    if (score > bestScore) {
-      bestScore = score;
-      bestLag = lag;
-    }
-  }
-
-  return bestLag > 0 ? sampleRate / bestLag : 0;
-}
-
-async function analyzeReferenceVoice(file: File) {
-  const context = new AudioContext({ sampleRate: 24000 });
-  try {
-    const decoded = await context.decodeAudioData(await file.arrayBuffer());
-    const channel = decoded.getChannelData(0);
-    const step = Math.max(1, Math.floor(channel.length / 24000));
-    let rmsTotal = 0;
-    let zcr = 0;
-    let previous = 0;
-    const compact = new Float32Array(Math.ceil(channel.length / step));
-
-    for (let source = 0, target = 0; source < channel.length; source += step, target++) {
-      const sample = channel[source];
-      compact[target] = sample;
-      rmsTotal += sample * sample;
-      if ((sample >= 0 && previous < 0) || (sample < 0 && previous >= 0)) zcr++;
-      previous = sample;
-    }
-
-    const rms = Math.sqrt(rmsTotal / compact.length);
-    const pitch = estimatePitch(compact, decoded.sampleRate / step);
-    const brightness = Math.min(1, zcr / compact.length / 0.18);
-    return { pitch, brightness, rms };
-  } finally {
-    await context.close();
-  }
 }
 
 export function VoiceVectorApp() {
@@ -179,6 +29,7 @@ export function VoiceVectorApp() {
   const [referenceSummary, setReferenceSummary] = useState<string | null>(null);
   const [vectorUrl, setVectorUrl] = useState<string | null>(null);
   const [vectorBuffer, setVectorBuffer] = useState<ArrayBuffer | null>(null);
+  const [normalize, setNormalize] = useState(true);
 
   const canGenerate = useMemo(() => voiceA !== voiceB && voiceId.trim().length > 0, [voiceA, voiceB, voiceId]);
 
@@ -195,13 +46,15 @@ export function VoiceVectorApp() {
       setStatus("Loading source voices");
       const [a, b] = await Promise.all([loadVoiceVector(voiceA), loadVoiceVector(voiceB)]);
 
-      setStatus("Blending vectors");
+      setStatus("Blending vectors (WebGPU)");
+      const math = getWebGPUMath();
       let vector: Float32Array;
       try {
-        vector = await blendWebGpu(a, b, mix, gain);
+        vector = await math.blendVectors(a, b, mix, gain, normalize, 0.1);
         setBackend("webgpu");
       } catch {
-        vector = blendCpu(a, b, mix, gain);
+        // WebGPU unavailable or failed — CPU fallback is inside blendVectors
+        vector = await math.blendVectors(a, b, mix, gain, normalize, 0.1);
         setBackend("cpu");
       }
 
@@ -239,8 +92,21 @@ export function VoiceVectorApp() {
     setBusy(true);
     setError(null);
     try {
-      setStatus("Analyzing reference");
-      const analysis = await analyzeReferenceVoice(file);
+      setStatus("Analyzing reference (WebGPU)");
+      const context = new AudioContext({ sampleRate: 24000 });
+      let analysis: AudioAnalysisResult;
+      try {
+        const decoded = await context.decodeAudioData(await file.arrayBuffer());
+        const channel = decoded.getChannelData(0);
+
+        // Use the GPU-accelerated audio analysis pipeline
+        const math = getWebGPUMath();
+        analysis = await math.analyzeAudio(channel, decoded.sampleRate);
+        setBackend("webgpu");
+      } finally {
+        await context.close();
+      }
+
       const higherPitch = analysis.pitch >= 165;
       const bright = analysis.brightness >= 0.5;
 
@@ -338,6 +204,24 @@ export function VoiceVectorApp() {
           </label>
         </div>
 
+        <div className="controls twoControls">
+          <label className="checkboxLabel">
+            <input
+              type="checkbox"
+              checked={normalize}
+              onChange={(event) => setNormalize(event.target.checked)}
+            />
+            RMS Normalize
+          </label>
+          <label>
+            Backend
+            <select value={backend ?? (navigator.gpu ? "webgpu" : "cpu")} disabled>
+              <option value="webgpu">WebGPU compute</option>
+              <option value="cpu">CPU fallback</option>
+            </select>
+          </label>
+        </div>
+
         <div className="actions">
           <button onClick={generateVector} disabled={!canGenerate || busy}>
             {busy ? <Loader2 size={18} className="spin" /> : <SlidersHorizontal size={18} />}
@@ -365,8 +249,11 @@ export function VoiceVectorApp() {
           <p>Kokoro-compatible voice vector file generated by blending existing voice packs.</p>
         </div>
         <div className="note">
-          You can upload your own recording to auto-select a close blend, but this is still not training a true clone.
-          It creates a new Kokoro style-vector file by mixing existing vectors.
+          <strong>WebGPU Math Engine</strong><br />
+          Audio analysis uses GPU-accelerated autocorrelation for pitch detection
+          and parallel reduction for RMS/ZCR computation. Vector blending runs
+          on the GPU with optional RMS normalisation — all with transparent CPU
+          fallback.
         </div>
       </aside>
     </main>
